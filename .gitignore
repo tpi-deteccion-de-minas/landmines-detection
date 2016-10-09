@@ -1,0 +1,32 @@
+# Original dataset
+Calibration/
+Measure\ 1/
+Measure\ 2/
+Measure\ 3/
+labels/
+
+# Preprocessed dataset (available on the project file repository)
+dataset/ignoredRawNoCrop/
+dataset/rawNoCrop/train/
+dataset/rawNoCrop/test/
+
+# Do not upload heavy datasets
+dataset/rawNoCrop/csv_spectrogram/train.h5
+dataset/rawNoCrop/csv_spectrogram/test.h5
+
+
+# workspace files are user-specific
+*.sublime-workspace
+
+# project files should be checked into the repository, unless a significant
+# proportion of contributors will probably not be using SublimeText
+*.sublime-project
+
+# Garbage
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
