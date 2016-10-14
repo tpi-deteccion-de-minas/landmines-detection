@@ -35,6 +35,7 @@ else: # Normalization (0,1)
 	del data
 	with h5py.File('test.h5', 'r+') as hf:
 		data = hf.get('test')
+		X_test = np.array(data).T.astype('float32')
 		hf['test'][:] = min_max_scaler.fit_transform(X_test).T
 		print X_test[0,:]
 	del X_test

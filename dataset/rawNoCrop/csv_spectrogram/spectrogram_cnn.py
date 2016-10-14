@@ -6,6 +6,7 @@ from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, Flatten
 from keras.layers import Convolution2D, MaxPooling2D
 from keras.layers.normalization import BatchNormalization
+from keras.optimizers import Adam
 from keras.callbacks import EarlyStopping, ModelCheckpoint
 from keras import backend as K
 
@@ -29,13 +30,11 @@ print Y_test.shape
 # print X_train[0,:]
 # pl.imshow(X_train[0,:].reshape((129, 48)), extent=[0, 1, 0, 1])
 
-batch_size = 128
-nb_epoch = 12
+batch_size = 64
+nb_epoch = 20
 
-img_rows, img_cols = 129, 48
-nb_filters = 32
-pool_size = (4, 4)
-kernel_size = (7, 7)
+img_rows, img_cols = 48, 48
+nb_filters = 28
 
 if K.image_dim_ordering() == 'th':
   X_train = X_train.reshape(X_train.shape[0], 1, img_rows, img_cols)
@@ -49,32 +48,29 @@ else:
 
 model = Sequential()
 
-model.add(Convolution2D(nb_filters, kernel_size[0], kernel_size[1],
+model.add(Convolution2D(nb_filters, 7, 7,
                         border_mode='valid',
                         input_shape=input_shape))
 model.add(Activation('relu'))
-model.add(Convolution2D(nb_filters, kernel_size[0], kernel_size[1]))
-model.add(Activation('relu'))
-model.add(BatchNormalization())
-model.add(MaxPooling2D(pool_size=pool_size))
-model.add(Dropout(0.3))
+model.add(MaxPooling2D(pool_size=(4, 4)))
+model.add(Dropout(0.5))
 
 model.add(Convolution2D(nb_filters, 5, 5))
 model.add(Activation('relu'))
-model.add(BatchNormalization())
-model.add(MaxPooling2D(pool_size=(2, 2)))
-model.add(Dropout(0.35))
+model.add(MaxPooling2D(pool_size=(5, 5)))
+model.add(Dropout(0.5))
 
 model.add(Flatten())
-model.add(Dense(128))
+model.add(Dense(128, init='glorot_uniform'))
 model.add(Activation('relu'))
-model.add(BatchNormalization())
-model.add(Dropout(0.4))
-model.add(Dense(1))
+model.add(Dropout(0.5))
+model.add(Dense(1, init='glorot_uniform'))
 model.add(Activation('sigmoid'))
 
+adam = Adam(lr=0.00002)
+
 model.compile(loss='binary_crossentropy',
-              optimizer='adam',
+              optimizer=adam,
               metrics=['accuracy'])
 
 model.fit(X_train, Y_train, batch_size=batch_size, nb_epoch=nb_epoch,
@@ -82,5 +78,28 @@ model.fit(X_train, Y_train, batch_size=batch_size, nb_epoch=nb_epoch,
 score = model.evaluate(X_test, Y_test, verbose=0)
 print('Test score:', score[0])
 print('Test accuracy:', score[1])
+
+# Pretty printing the confusion matrix with Pandas
+predictions = model.predict_classes(X_test, verbose=0).squeeze()
+from pandas import Series
+from pandas import crosstab
+
+test_labels = Series(Y_test, name='Truth')
+predictions = Series(predictions, name='Predicted')
+conf_matrix = crosstab(test_labels, predictions, rownames=['Truth'], colnames=['Predicted'], margins=True)
+print "\nConfusion matrix\n\n 0: No mine, 1: Mine\n\n", conf_matrix
+
+norm_conf_matrix = crosstab(test_labels, predictions, rownames=['Truth'], colnames=['Predicted'], margins=True, normalize=True)
+print "\nConfusion matrix (normalised)\n\n", norm_conf_matrix
+
+print("\n\nOverall accuracy: %.4f (%i out of %i samples)"
+      % (norm_conf_matrix[0][0] + norm_conf_matrix[1][1], conf_matrix[0][0] + conf_matrix[1][1], len(test_labels)))
+print("False positive rate: %.4f (%i samples)" % (norm_conf_matrix[1][0], conf_matrix[1][0]))
+print("False negative rate: %.4f (%i samples)" % (norm_conf_matrix[0][1], conf_matrix[0][1]))
+
+positive_truths = conf_matrix[1][1] + conf_matrix[1][0]
+negative_truths = conf_matrix[1][1] + conf_matrix[0][1]
+print("Precision: %.4f" % (1. * conf_matrix[1][1]/positive_truths))
+print("Recall: %.4f" % (1. * conf_matrix[1][1]/negative_truths))
 
 pl.show()

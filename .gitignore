@@ -13,6 +13,7 @@ dataset/rawNoCrop/test/
 # Do not upload heavy datasets
 dataset/rawNoCrop/csv_spectrogram/train.h5
 dataset/rawNoCrop/csv_spectrogram/test.h5
+dataset/rawNoCrop/csv_spectrogram/
 
 
 # workspace files are user-specific

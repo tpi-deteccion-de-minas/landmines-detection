@@ -18,7 +18,7 @@ function [X, Y, trainMean, trainStd] = generateDataset(folder, files, datasetCho
         case 0 % Fourier            
             features = single(zeros(140000,23));            
         case 1 % Spectrogram
-            features = single(zeros(140000,6192));
+            features = single(zeros(140000,2304));
             datasetName = 'spectrogram';
         otherwise
             error('Choose a valid dataset type.')
@@ -81,7 +81,7 @@ function [X, Y, trainMean, trainStd] = generateDataset(folder, files, datasetCho
                     case 0
                         features(idx,:) = getFourierFeatures(currAScan);
                     case 1
-                        s = single(abs(spectrogram(currAScan, 128, 120))');
+                        s = single(abs(spectrogram(currAScan, 128, 120, 94))');
                         features(idx,:) = s(:)';
                 end
                 idx = idx + 1;
