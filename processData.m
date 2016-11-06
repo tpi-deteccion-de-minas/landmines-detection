@@ -6,8 +6,10 @@ clc
 
 % 0: Fourier features
 % 1: Spectrogram
+% 2: Spectrogram images (224,224)
+% 3: Wavelets
 
-datasetChoice = 1;
+datasetChoice = 2;
 
 %% Some paths
 
@@ -18,12 +20,17 @@ testFolder = strcat(mainFolder, '/rawNoCrop/test');
 % Path to save the dataset
 switch datasetChoice
     case 0
-        datasetName = 'fourier';
+        datasetName = 'csv_fourier';
     case 1
-        datasetName = 'spectrogram';
+        datasetName = 'csv_spectrogram';
+    case 2
+        datasetName = 'img_spectrogram';
+    case 3
+        datasetName = 'h5_wavelets';
+        error('Not implemented yet.')
 end
 
-datasetPath = strcat('dataset/rawNoCrop/csv_', datasetName);
+datasetPath = strcat('dataset/rawNoCrop/', datasetName);
 
 %% Gathering the data
 

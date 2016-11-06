@@ -19,7 +19,23 @@ function [X, Y, trainMean, trainStd] = generateDataset(folder, files, datasetCho
             features = single(zeros(140000,23));            
         case 1 % Spectrogram
             features = single(zeros(140000,2304));
-            datasetName = 'spectrogram';
+            datasetPath = strcat('dataset/rawNoCrop/csv_spectrogram');
+        case 2 % Spectrogram images
+            datasetPath = strcat('dataset/rawNoCrop/img_spectrogram');                      
+            if ~exist(datasetPath, 'dir')
+                mkdir(datasetPath);
+            end
+            if isTraining
+                trainingFolder = strcat(datasetPath, '/train');
+                if ~exist(trainingFolder, 'dir')
+                    mkdir(trainingFolder);
+                end
+            else
+                testFolder = strcat(datasetPath, '/test');
+                if ~exist(testFolder, 'dir')
+                    mkdir(testFolder);
+                end
+            end
         otherwise
             error('Choose a valid dataset type.')
     end
@@ -83,6 +99,19 @@ function [X, Y, trainMean, trainStd] = generateDataset(folder, files, datasetCho
                     case 1
                         s = single(abs(spectrogram(currAScan, 128, 120, 94))');
                         features(idx,:) = s(:)';
+                    case 2
+                        s = abs(spectrogram(currAScan, 288, 287, 446));
+                        % Normalazing between [0,1] to save image
+                        s = s - min(s(:));
+                        s = s / max(s(:));
+                        if isTraining
+                            filename = strcat(trainingFolder, '/', num2str(labels(idx)), '_', ...
+                                num2str(j), '-', num2str(k), '-', pInfo.mMeasDesc, '.jpg');
+                        else
+                            filename = strcat(testFolder, '/', num2str(labels(idx)), '_', ...
+                                num2str(j), '-', num2str(k), '-', pInfo.mMeasDesc, '.jpg');
+                        end                        
+                        imwrite(s, filename);
                 end
                 idx = idx + 1;
             end
@@ -111,12 +140,19 @@ function [X, Y, trainMean, trainStd] = generateDataset(folder, files, datasetCho
     % X stores the generated features of each sample.
     % Y stores the label or class associated to each sample.
 
-    X = features(1:totalSamples,:);
-    Y = labels(1:totalSamples,:);   
+    if datasetChoice ~= 2
+        X = features(1:totalSamples,:);
+        Y = labels(1:totalSamples,:);
+    else
+        % Invalid return
+        X = [];
+        Y = [];
+        trainMean = NaN;
+        trainStd = NaN;
+    end
     
     % Save to disk if dataset is quite big.
-    if datasetChoice ~= 0
-        datasetPath = strcat('dataset/rawNoCrop/csv_', datasetName);
+    if datasetChoice ~= 0 && datasetChoice ~= 2        
         if isTraining
             if ~exist(strcat(datasetPath, '/train.h5'), 'file')
                 h5create(strcat(datasetPath, '/train.h5'), '/train', size(X), 'Datatype', 'single');

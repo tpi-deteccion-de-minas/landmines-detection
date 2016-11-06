@@ -14,6 +14,8 @@ dataset/rawNoCrop/test/
 dataset/rawNoCrop/csv_spectrogram/train.h5
 dataset/rawNoCrop/csv_spectrogram/test.h5
 dataset/rawNoCrop/csv_spectrogram/
+dataset/rawNoCrop/train/
+dataset/rawNoCrop/test/
 
 
 # workspace files are user-specific

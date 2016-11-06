@@ -31,7 +31,7 @@ print Y_test.shape
 # pl.imshow(X_train[0,:].reshape((129, 48)), extent=[0, 1, 0, 1])
 
 batch_size = 64
-nb_epoch = 20
+nb_epoch = 60
 
 img_rows, img_cols = 48, 48
 nb_filters = 28
@@ -45,6 +45,12 @@ else:
   X_test = X_test.reshape(X_test.shape[0], img_rows, img_cols, 1)
   input_shape = (img_rows, img_cols, 1)
 
+# Callbacks
+models_folder = 'models/'
+model_file_path = models_folder + 'spec-cnn-{val_acc:.4f}-{epoch:02d}-{val_loss:.4f}.h5'
+checkpoint = ModelCheckpoint(model_file_path, monitor='val_loss', verbose=0, save_best_only=False, mode='min')
+
+callbacks = [checkpoint]
 
 model = Sequential()
 
@@ -74,10 +80,29 @@ model.compile(loss='binary_crossentropy',
               metrics=['accuracy'])
 
 model.fit(X_train, Y_train, batch_size=batch_size, nb_epoch=nb_epoch,
-          verbose=1, validation_data=(X_test, Y_test))
+          verbose=1, validation_data=(X_test, Y_test), callbacks=callbacks)
 score = model.evaluate(X_test, Y_test, verbose=0)
 print('Test score:', score[0])
 print('Test accuracy:', score[1])
+
+### START DELETE ###
+
+with h5py.File('ad_hoc/output/test.h5', 'r') as hf:
+  X_other_test = np.array(hf.get('test')).T.astype('float32')
+
+with open('ad_hoc/output/testLabels.txt', 'r') as f:
+  Y_other_test = np.loadtxt(f)
+
+X_other_test = X_other_test.reshape(X_other_test.shape[0], 1, img_rows, img_cols)
+
+score = model.evaluate(X_other_test, Y_other_test, verbose=1)
+print('Test score:', score[0])
+print('Test accuracy:', score[1])
+
+del X_other_test
+del Y_other_test
+
+### END DELETE ###
 
 # Pretty printing the confusion matrix with Pandas
 predictions = model.predict_classes(X_test, verbose=0).squeeze()
