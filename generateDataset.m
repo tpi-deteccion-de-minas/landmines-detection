@@ -36,6 +36,10 @@ function [X, Y, trainMean, trainStd] = generateDataset(folder, files, datasetCho
                     mkdir(testFolder);
                 end
             end
+        case 3
+%             features = single(zeros(140000,1024));
+            features = single(zeros(140000,2304));
+            datasetPath = strcat('dataset/rawNoCrop/h5_wavelets');
         otherwise
             error('Choose a valid dataset type.')
     end
@@ -43,17 +47,25 @@ function [X, Y, trainMean, trainStd] = generateDataset(folder, files, datasetCho
     for i = 1:size(files, 1)
         currentFile = strcat(folder{i}, '/', files(i).name);
         load(currentFile);
-
-        numSamplesCh3 = size(signal.ch3, 2);
-        numSamplesCh4 = size(signal.ch4, 2);
-        fprintf('\nProcessing file %s %i %i...', currentFile, numSamplesCh3, numSamplesCh4)    
-
-        % 0: no mine, 1: mine
-        if pInfo.label == 0
-            label0DCount = label0DCount + numSamplesCh3 + numSamplesCh4;
+        
+        if exist('subData')
+            fprintf('\nProcessing file %s', currentFile)
+            for j = 1:size(subData, 3)
+                signal.(strcat('ch', num2str(j))) = subData(:, :, j);
+            end
+            clear('subData');
         else
-            label1DCount = label1DCount + numSamplesCh3 + numSamplesCh4;
-        end
+            numSamplesCh3 = size(signal.ch3, 2);
+            numSamplesCh4 = size(signal.ch4, 2);
+            fprintf('\nProcessing file %s %i %i...', currentFile, numSamplesCh3, numSamplesCh4)
+
+            % 0: no mine, 1: mine
+            if pInfo.label == 0
+                label0DCount = label0DCount + numSamplesCh3 + numSamplesCh4;
+            else
+                label1DCount = label1DCount + numSamplesCh3 + numSamplesCh4;
+            end
+        end        
 
         % From here to the end of the loop, each file can be processed in order
         % to generate the final dataset. Each file has a struct object named
@@ -85,21 +97,27 @@ function [X, Y, trainMean, trainStd] = generateDataset(folder, files, datasetCho
         % we have 18 features, hence, a 1-by-18 vector is created to store
         % those features.
         
-        signals = {signal.ch3 signal.ch4};
-        for j = 1:2
-            currSignalSize = size(signals{j}, 2);
+        channels = fieldnames(signal);
+        for j = 1:length(channels)
+            currChannel = signal.(channels{j});
+            currSignalSize = size(currChannel, 2);
             for k = 1:currSignalSize
-                currAScan = signals{j}(:, k);
+                currAScan = currChannel(:, k);
                 
                 % Adding the sample to the generated dataset
-                labels(idx) = uint8(pInfo.label);
+                if (isfield(pInfo, 'label'))
+                    labels(idx) = uint8(pInfo.label);
+                else
+                    labels(idx) = 0;
+                end
+                
                 switch datasetChoice
-                    case 0
+                    case 0 % Fourier features
                         features(idx,:) = getFourierFeatures(currAScan);
-                    case 1
+                    case 1 % Spectrogram 48x48
                         s = single(abs(spectrogram(currAScan, 128, 120, 94))');
                         features(idx,:) = s(:)';
-                    case 2
+                    case 2 % Spectrogram 224x224
                         s = abs(spectrogram(currAScan, 288, 287, 446));
                         % Normalazing between [0,1] to save image
                         s = s - min(s(:));
@@ -112,6 +130,8 @@ function [X, Y, trainMean, trainStd] = generateDataset(folder, files, datasetCho
                                 num2str(j), '-', num2str(k), '-', pInfo.mMeasDesc, '.jpg');
                         end                        
                         imwrite(s, filename);
+                    case 3 % Wavelets 32x32
+                        features(idx,:) = getWaveletsv2(currAScan)';
                 end
                 idx = idx + 1;
             end
@@ -155,13 +175,13 @@ function [X, Y, trainMean, trainStd] = generateDataset(folder, files, datasetCho
     if datasetChoice ~= 0 && datasetChoice ~= 2        
         if isTraining
             if ~exist(strcat(datasetPath, '/train.h5'), 'file')
-                h5create(strcat(datasetPath, '/train.h5'), '/train', size(X), 'Datatype', 'single');
+                h5create(strcat(datasetPath, '/train.h5'), '/train', idx-1, 'Datatype', 'single');
             end
             h5write(strcat(datasetPath, '/train.h5'), '/train', X)
             dlmwrite(strcat(datasetPath, '/trainLabels.txt'), Y, 'delimiter', ' ', 'precision', 8);
         else
             if ~exist(strcat(datasetPath, '/test.h5'), 'file')
-                h5create(strcat(datasetPath, '/test.h5'), '/test', size(X), 'Datatype', 'single');
+                h5create(strcat(datasetPath, '/test.h5'), '/test', idx-1, 'Datatype', 'single');
             end
             h5write(strcat(datasetPath, '/test.h5'), '/test', X)
             dlmwrite(strcat(datasetPath, '/testLabels.txt'),  Y,  'delimiter', ' ', 'precision', 8);

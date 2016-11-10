@@ -9,7 +9,7 @@ clc
 % 2: Spectrogram images (224,224)
 % 3: Wavelets
 
-datasetChoice = 2;
+datasetChoice = 3;
 
 %% Some paths
 
@@ -27,7 +27,6 @@ switch datasetChoice
         datasetName = 'img_spectrogram';
     case 3
         datasetName = 'h5_wavelets';
-        error('Not implemented yet.')
 end
 
 datasetPath = strcat('dataset/rawNoCrop/', datasetName);

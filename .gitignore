@@ -3,6 +3,8 @@ Calibration/
 Measure\ 1/
 Measure\ 2/
 Measure\ 3/
+Measure\ 7/
+Measure\ 8/
 labels/
 
 # Preprocessed dataset (available on the project file repository)
@@ -11,11 +13,11 @@ dataset/rawNoCrop/train/
 dataset/rawNoCrop/test/
 
 # Do not upload heavy datasets
-dataset/rawNoCrop/csv_spectrogram/train.h5
-dataset/rawNoCrop/csv_spectrogram/test.h5
-dataset/rawNoCrop/csv_spectrogram/
-dataset/rawNoCrop/train/
-dataset/rawNoCrop/test/
+*.h5
+*.mat
+*.txt
+dataset/rawNoCrop/csv_spectrogram/ad_hoc/
+dataset/rawNoCrop/img_spectrogram/
 
 
 # workspace files are user-specific
