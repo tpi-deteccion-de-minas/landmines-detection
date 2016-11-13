@@ -85,24 +85,6 @@ score = model.evaluate(X_test, Y_test, verbose=0)
 print('Test score:', score[0])
 print('Test accuracy:', score[1])
 
-### START DELETE ###
-
-with h5py.File('ad_hoc/output/test.h5', 'r') as hf:
-  X_other_test = np.array(hf.get('test')).T.astype('float32')
-
-with open('ad_hoc/output/testLabels.txt', 'r') as f:
-  Y_other_test = np.loadtxt(f)
-
-X_other_test = X_other_test.reshape(X_other_test.shape[0], 1, img_rows, img_cols)
-
-score = model.evaluate(X_other_test, Y_other_test, verbose=1)
-print('Test score:', score[0])
-print('Test accuracy:', score[1])
-
-del X_other_test
-del Y_other_test
-
-### END DELETE ###
 
 # Pretty printing the confusion matrix with Pandas
 predictions = model.predict_classes(X_test, verbose=0).squeeze()
