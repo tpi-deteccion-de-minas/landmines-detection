@@ -35,7 +35,7 @@ input_dim = X_train.shape[1]
 
 model = Sequential()
 
-model.add(Dense(22, input_dim=input_dim, init='uniform'))
+model.add(Dense(22, input_dim=input_dim, init='glorot_uniform'))
 model.add(Activation('relu'))
 model.add(Dense(1, init='uniform'))
 model.add(Activation('sigmoid'))
@@ -47,9 +47,7 @@ models_folder = 'models/'
 model_file_path = models_folder + 'descriptors-{val_acc:.4f}-{epoch:02d}-{val_loss:.4f}.h5'
 checkpoint = ModelCheckpoint(model_file_path, monitor='val_loss', verbose=0, save_best_only=True, mode='min')
 
-stopping = EarlyStopping(monitor='val_loss', patience=8, verbose=0, mode='auto')
-
-callbacks = [checkpoint, stopping]
+callbacks = [checkpoint]
 
 # With class weights
 # model.fit(X_train, Y_train, nb_epoch=60, batch_size=64, verbose=1, validation_data=(X_test, Y_test), callbacks=callbacks, class_weight=class_weight)

@@ -9,7 +9,7 @@ clc
 % 2: Spectrogram images (224,224)
 % 3: Wavelets
 
-datasetChoice = 3;
+datasetChoice = 0;
 
 %% Some paths
 

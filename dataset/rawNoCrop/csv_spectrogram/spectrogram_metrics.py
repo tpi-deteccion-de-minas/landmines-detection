@@ -1,6 +1,5 @@
 import numpy as np
 import h5py
-import pylab as pl
 
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, Flatten
@@ -26,6 +25,9 @@ print X_train.shape
 print Y_train.shape
 print X_test.shape
 print Y_test.shape
+
+# print X_train[0,:]
+# pl.imshow(X_train[0,:].reshape((129, 48)), extent=[0, 1, 0, 1])
 
 batch_size = 64
 nb_epoch = 60
@@ -76,11 +78,13 @@ model.compile(loss='binary_crossentropy',
               optimizer=adam,
               metrics=['accuracy'])
 
-model.fit(X_train, Y_train, batch_size=batch_size, nb_epoch=nb_epoch,
-          verbose=1, validation_data=(X_test, Y_test), callbacks=callbacks)
-score = model.evaluate(X_test, Y_test, verbose=0)
-print('Test score:', score[0])
-print('Test accuracy:', score[1])
+model.load_weights("models/spec-cnn-0.8759-54-0.3281.h5")
+score_train = model.evaluate(X_train, Y_train, verbose=0)
+score_test = model.evaluate(X_test, Y_test, verbose=0)
+
+print ""
+print('Train score:', score_train[0], 'Train accuracy:', score_train[1])
+print('Test score:', score_test[0], 'Test accuracy:', score_test[1])
 
 
 # Pretty printing the confusion matrix with Pandas
@@ -93,17 +97,33 @@ predictions = Series(predictions, name='Predicted')
 conf_matrix = crosstab(test_labels, predictions, rownames=['Truth'], colnames=['Predicted'], margins=True)
 print "\nConfusion matrix\n\n 0: No mine, 1: Mine\n\n", conf_matrix
 
-norm_conf_matrix = crosstab(test_labels, predictions, rownames=['Truth'], colnames=['Predicted'], margins=True, normalize=True)
-print "\nConfusion matrix (normalised)\n\n", norm_conf_matrix
-
-print("\n\nOverall accuracy: %.4f (%i out of %i samples)"
-      % (norm_conf_matrix[0][0] + norm_conf_matrix[1][1], conf_matrix[0][0] + conf_matrix[1][1], len(test_labels)))
-print("False positive rate: %.4f (%i samples)" % (norm_conf_matrix[1][0], conf_matrix[1][0]))
-print("False negative rate: %.4f (%i samples)" % (norm_conf_matrix[0][1], conf_matrix[0][1]))
-
 positive_truths = conf_matrix[1][1] + conf_matrix[1][0]
 negative_truths = conf_matrix[1][1] + conf_matrix[0][1]
+precision = 1. * conf_matrix[1][1]/positive_truths
+recall = 1. * conf_matrix[1][1]/negative_truths
+f1_score = 2. *((precision*recall)/(precision+recall))
+
 print("Precision: %.4f" % (1. * conf_matrix[1][1]/positive_truths))
 print("Recall: %.4f" % (1. * conf_matrix[1][1]/negative_truths))
+print("F1 Score: %.4f" % (f1_score))
 
-pl.show()
+print("\n")
+
+from sklearn.metrics import roc_curve, auc
+import pylab as plt
+
+scores = model.predict(X_test, verbose=0).squeeze()
+fpr, tpr, thresholds = roc_curve(Y_test, scores, pos_label=1.)
+roc_auc = auc(fpr,tpr)
+plt.figure()
+lw = 2
+plt.plot(fpr, tpr, color='darkorange',
+         lw=lw, label='ROC curve (area = %0.2f)' % roc_auc)
+plt.plot([0, 1], [0, 1], color='navy', lw=lw, linestyle='--')
+plt.xlim([0.0, 1.0])
+plt.ylim([0.0, 1.05])
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('Receiver operating characteristic example')
+plt.legend(loc="lower right")
+plt.show()

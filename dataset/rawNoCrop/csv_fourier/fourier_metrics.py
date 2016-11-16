@@ -54,12 +54,10 @@ predictions = model.predict_classes(X_test, verbose=0).squeeze()
 from pandas import Series
 from pandas import crosstab
 
-
 test_labels = Series(Y_test, name='Truth')
 predictions = Series(predictions, name='Predicted')
 conf_matrix = crosstab(test_labels, predictions, rownames=['Truth'], colnames=['Predicted'], margins=True)
 print "\nConfusion matrix\n\n 0: No mine, 1: Mine\n\n", conf_matrix
-
 
 positive_truths = conf_matrix[1][1] + conf_matrix[1][0]
 negative_truths = conf_matrix[1][1] + conf_matrix[0][1]
@@ -76,7 +74,6 @@ print("\n")
 from sklearn.metrics import roc_curve, auc
 import pylab as plt
 
-
 scores = model.predict(X_test, verbose=0).squeeze()
 fpr, tpr, thresholds = roc_curve(Y_test, scores, pos_label=1.)
 roc_auc = auc(fpr,tpr)
@@ -92,4 +89,3 @@ plt.ylabel('True Positive Rate')
 plt.title('Receiver operating characteristic example')
 plt.legend(loc="lower right")
 plt.show()
-
