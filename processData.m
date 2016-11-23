@@ -9,7 +9,7 @@ clc
 % 2: Spectrogram images (224,224)
 % 3: Wavelets
 
-datasetChoice = 0;
+datasetChoice = 3;
 
 %% Some paths
 
@@ -41,16 +41,8 @@ testFiles = dir(strcat(testFolder, '/*.mat'));
 testFolders = {repmat({testFolder}, 1, size(testFiles, 1))};
 testFolders = [testFolders{:}];
 
-%% Dataset generation
-[X_train, Y_train, trainMean, trainStd] = generateDataset(trainFolders, trainFiles, datasetChoice, 1);
-[X_test, Y_test] = generateDataset(testFolders, testFiles, datasetChoice, 0, trainMean, trainStd);
+allFolders = [trainFolders testFolders];
+allFiles = [trainFiles; testFiles];
 
-% This section is only used for the Fourier features dataset as it is small
-% enough to keep in memory.
-if datasetChoice == 0
-    %% Saving
-    dlmwrite(strcat(datasetPath, '/train.txt'),       X_train, 'delimiter', ' ', 'precision', 8);
-    dlmwrite(strcat(datasetPath, '/trainLabels.txt'), Y_train, 'delimiter', ' ', 'precision', 8);
-    dlmwrite(strcat(datasetPath, '/test.txt'),        X_test,  'delimiter', ' ', 'precision', 8);
-    dlmwrite(strcat(datasetPath, '/testLabels.txt'),  Y_test,  'delimiter', ' ', 'precision', 8);
-end
+%% Dataset generation
+generateDataset(allFolders, allFiles, datasetChoice);

@@ -1,4 +1,4 @@
-function [X, Y, trainMean, trainStd] = generateDataset(folder, files, datasetChoice, isTraining, tMean, tStd)
+function [X, Y] = generateDataset(folder, files, datasetChoice)
     % datasetChoice:
     %   0: Fourier features
     %   1: Spectrogram
@@ -10,38 +10,34 @@ function [X, Y, trainMean, trainStd] = generateDataset(folder, files, datasetCho
     % "No mine" is represented by a 0.
     % "Mine" is represented by a 1.
 
-    labels = uint8(zeros(140000,1));
+    labels = uint8(zeros(170000,1));
+    
+    % Object IDs extracted from file
+    objectIds = uint8(zeros(170000,1));
     
     % IMPORTANT: change the matrix dimensions according to the
     % modifications made.
     switch datasetChoice
         case 0 % Fourier            
-            features = single(zeros(140000,23));            
+            features = single(zeros(170000, 23));
+            datasetPath = strcat('dataset/rawNoCrop/csv_fourier');
+            datasetName = 'descriptors';
         case 1 % Spectrogram
-            features = single(zeros(140000,2304));
+            features = single(zeros(170000, 2304));
             datasetPath = strcat('dataset/rawNoCrop/csv_spectrogram');
+            datasetName = 'spectrogram_48x48';
         case 2 % Spectrogram images
-            datasetPath = strcat('dataset/rawNoCrop/img_spectrogram');                      
-            if ~exist(datasetPath, 'dir')
-                mkdir(datasetPath);
-            end
-            if isTraining
-                trainingFolder = strcat(datasetPath, '/train');
-                if ~exist(trainingFolder, 'dir')
-                    mkdir(trainingFolder);
-                end
-            else
-                testFolder = strcat(datasetPath, '/test');
-                if ~exist(testFolder, 'dir')
-                    mkdir(testFolder);
-                end
-            end
+            datasetPath = strcat('dataset/rawNoCrop/img_spectrogram/images');           
         case 3
-%             features = single(zeros(140000,1024));
-            features = single(zeros(140000,2304));
+            features = single(zeros(170000,1024));
             datasetPath = strcat('dataset/rawNoCrop/h5_wavelets');
+            datasetName = 'wavelets_32x32';
         otherwise
             error('Choose a valid dataset type.')
+    end
+    
+    if ~exist(datasetPath, 'dir')
+        mkdir(datasetPath);
     end
     
     for i = 1:size(files, 1)
@@ -54,10 +50,12 @@ function [X, Y, trainMean, trainStd] = generateDataset(folder, files, datasetCho
                 signal.(strcat('ch', num2str(j))) = subData(:, :, j);
             end
             clear('subData');
-        else
+        else            
             numSamplesCh3 = size(signal.ch3, 2);
             numSamplesCh4 = size(signal.ch4, 2);
-            fprintf('\nProcessing file %s %i %i...', currentFile, numSamplesCh3, numSamplesCh4)
+            objectNumberIdx = regexp(files(i).name, '[0-9]');
+            fprintf('\nProcessing file %s %i %i ID: %i...', currentFile, numSamplesCh3, numSamplesCh4, ...
+                uint8(str2double(files(i).name(objectNumberIdx(2:end)))))
 
             % 0: no mine, 1: mine
             if pInfo.label == 0
@@ -65,7 +63,7 @@ function [X, Y, trainMean, trainStd] = generateDataset(folder, files, datasetCho
             else
                 label1DCount = label1DCount + numSamplesCh3 + numSamplesCh4;
             end
-        end        
+        end       
 
         % From here to the end of the loop, each file can be processed in order
         % to generate the final dataset. Each file has a struct object named
@@ -111,6 +109,10 @@ function [X, Y, trainMean, trainStd] = generateDataset(folder, files, datasetCho
                     labels(idx) = 0;
                 end
                 
+                % Extracting the object ID
+                objectNumberIdx = regexp(files(i).name, '[0-9]');
+                objectIds(idx) = uint8(str2double(files(i).name(objectNumberIdx(2:end))));
+                
                 switch datasetChoice
                     case 0 % Fourier features
                         features(idx,:) = getFourierFeatures(currAScan);
@@ -122,13 +124,8 @@ function [X, Y, trainMean, trainStd] = generateDataset(folder, files, datasetCho
                         % Normalazing between [0,1] to save image
                         s = s - min(s(:));
                         s = s / max(s(:));
-                        if isTraining
-                            filename = strcat(trainingFolder, '/', num2str(labels(idx)), '_', ...
-                                num2str(j), '-', num2str(k), '-', pInfo.mMeasDesc, '.jpg');
-                        else
-                            filename = strcat(testFolder, '/', num2str(labels(idx)), '_', ...
-                                num2str(j), '-', num2str(k), '-', pInfo.mMeasDesc, '.jpg');
-                        end                        
+                        filename = strcat(datasetPath, '/', num2str(labels(idx)), '_', ...
+                                num2str(j), '-', num2str(k), '-', pInfo.mMeasDesc, '.jpg');                    
                         imwrite(s, filename);
                     case 3 % Wavelets 32x32
                         features(idx,:) = getWaveletsv2(currAScan)';
@@ -161,48 +158,22 @@ function [X, Y, trainMean, trainStd] = generateDataset(folder, files, datasetCho
     % Y stores the label or class associated to each sample.
 
     if datasetChoice ~= 2
-        X = features(1:totalSamples,:);
-        Y = labels(1:totalSamples,:);
+        X = features(1:totalSamples, :);
+        Y = labels(1:totalSamples, :);
+        objectIds = objectIds(1:totalSamples, :);
     else
-        % Invalid return
-        X = [];
-        Y = [];
-        trainMean = NaN;
-        trainStd = NaN;
+        return
     end
     
-    % Save to disk if dataset is quite big.
-    if datasetChoice ~= 0 && datasetChoice ~= 2        
-        if isTraining
-            if ~exist(strcat(datasetPath, '/train.h5'), 'file')
-                h5create(strcat(datasetPath, '/train.h5'), '/train', idx-1, 'Datatype', 'single');
-            end
-            h5write(strcat(datasetPath, '/train.h5'), '/train', X)
-            dlmwrite(strcat(datasetPath, '/trainLabels.txt'), Y, 'delimiter', ' ', 'precision', 8);
-        else
-            if ~exist(strcat(datasetPath, '/test.h5'), 'file')
-                h5create(strcat(datasetPath, '/test.h5'), '/test', idx-1, 'Datatype', 'single');
-            end
-            h5write(strcat(datasetPath, '/test.h5'), '/test', X)
-            dlmwrite(strcat(datasetPath, '/testLabels.txt'),  Y,  'delimiter', ' ', 'precision', 8);
-        end
-        X = [];
-        Y = [];
-        trainMean = NaN;
-        trainStd = NaN;
-    else
-        % Normalization
-        if isTraining
-            trainMean = single(mean(X));
-            trainStd = single(std(X));
-        else
-            if nargin < 6
-                error('Training mean or std is missing.')
-            end
-            trainMean = tMean;
-            trainStd = tStd;
-        end        
-        temp = bsxfun(@minus,X,trainMean);
-        X = bsxfun(@rdivide,temp,trainStd);
+    datasetPath = strcat(datasetPath, '/', datasetName, '.h5');
+    
+    if ~exist(datasetPath, 'file')
+        h5create(datasetPath, '/data', size(X));
+        h5create(datasetPath, '/labels', size(Y));
+        h5create(datasetPath, '/objectIds', size(objectIds));
     end
+    
+    h5write(datasetPath, '/data', X)
+    h5write(datasetPath, '/labels', Y)
+    h5write(datasetPath, '/objectIds', objectIds)
 end
